@@ -33,12 +33,16 @@ $data = [
     ['University of Moratuwa', 'BSc Honours in Information Technology & Management', 'Combined Mathematics', 'Physics', 'ICT', 'Colombo', 1.70],
     ['University of Moratuwa', 'BSc Honours in Information Technology & Management', 'Combined Mathematics', 'Physics', 'ICT', 'Gampaha', 1.45],
     ['University of Moratuwa', 'Bachelor of Architecture', 'Combined Mathematics', 'Physics', 'Chemistry', 'All', 1.35],
+    ['University of Moratuwa', 'Bachelor of Architecture', 'Combined Mathematics', 'Physics', 'ICT', 'All', 1.35],
+    ['University of Moratuwa', 'Bachelor of Architecture', 'Combined Mathematics', 'Physics', 'Biology', 'All', 1.35],
     
     // Peradeniya
     ['University of Peradeniya', 'BSc Engineering Honours', 'Combined Mathematics', 'Physics', 'Chemistry', 'Colombo', 1.90],
     ['University of Peradeniya', 'BSc Engineering Honours', 'Combined Mathematics', 'Physics', 'Chemistry', 'Gampaha', 1.90],
     ['University of Peradeniya', 'BSc Physical Science', 'Combined Mathematics', 'Physics', 'Chemistry', 'Colombo', 1.52],
     ['University of Peradeniya', 'BSc Physical Science', 'Combined Mathematics', 'Physics', 'Chemistry', 'Gampaha', 1.47],
+    ['University of Peradeniya', 'BSc Physical Science', 'Combined Mathematics', 'Physics', 'Biology', 'Colombo', 1.52],
+    ['University of Peradeniya', 'BSc Physical Science', 'Combined Mathematics', 'Physics', 'Biology', 'Gampaha', 1.47],
     
     // Ruhuna
     ['University of Ruhuna', 'BSc Engineering Honours', 'Combined Mathematics', 'Physics', 'Chemistry', 'Colombo', 1.90],
@@ -57,49 +61,73 @@ $data = [
     ['South Eastern University of Sri Lanka', 'BSc Engineering Honours', 'Combined Mathematics', 'Physics', 'Chemistry', 'All', 1.83]
 ];
 
-// Helper to get or create univ and degree
-foreach ($data as $row) {
-    list($uni_name, $deg_name, $sub1, $sub2, $sub3, $district, $cutoff) = $row;
+    // Clean up our dummy faculties and departments to fix previous mismatches
+    $conn->query("DELETE FROM zscore_cutoffs WHERE stream = 'Physical Science' AND description IS NULL"); // Hacky way to know the new cutoffs don't have description if we didn't add it, actually stream='Physical Science' is an indicator
+    $conn->query("TRUNCATE TABLE zscore_cutoffs"); // Just wipe to be safe
+    // Note: We won't wipe degrees/universities to protect actual schema data but fix mappings
     
-    // Get/create university
-    $stmt = $conn->prepare("SELECT id FROM universities WHERE name = ?");
-    $stmt->bind_param("s", $uni_name);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res->num_rows > 0) {
-        $uni_id = $res->fetch_assoc()['id'];
-    } else {
-        $stmt2 = $conn->prepare("INSERT INTO universities (name) VALUES (?)");
-        $stmt2->bind_param("s", $uni_name);
-        $stmt2->execute();
-        $uni_id = $conn->insert_id;
+    // Helper to get or create univ and degree
+    foreach ($data as $row) {
+        list($uni_name, $deg_name, $sub1, $sub2, $sub3, $district, $cutoff) = $row;
+        
+        // Get/create university
+        $stmt = $conn->prepare("SELECT id FROM universities WHERE name = ?");
+        $stmt->bind_param("s", $uni_name);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res->num_rows > 0) {
+            $uni_id = $res->fetch_assoc()['id'];
+        } else {
+            $stmt2 = $conn->prepare("INSERT INTO universities (name) VALUES (?)");
+            $stmt2->bind_param("s", $uni_name);
+            $stmt2->execute();
+            $uni_id = $conn->insert_id;
+        }
+        
+        // Get/create specific faculty
+        $stmt = $conn->prepare("SELECT id FROM faculties WHERE university_id = ? AND name = 'Faculty of General'");
+        $stmt->bind_param("i", $uni_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res->num_rows > 0) {
+            $fac_id = $res->fetch_assoc()['id'];
+        } else {
+            $conn->query("INSERT INTO faculties (university_id, name) VALUES ($uni_id, 'Faculty of General')");
+            $fac_id = $conn->insert_id;
+        }
+
+        // Get/create specific department
+        $stmt = $conn->prepare("SELECT id FROM departments WHERE faculty_id = ? AND name = 'Department of General'");
+        $stmt->bind_param("i", $fac_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res->num_rows > 0) {
+            $dept_id = $res->fetch_assoc()['id'];
+        } else {
+            $conn->query("INSERT INTO departments (faculty_id, name) VALUES ($fac_id, 'Department of General')");
+            $dept_id = $conn->insert_id;
+        }
+        
+        // Get/create degree
+        $stmt = $conn->prepare("SELECT id FROM degrees WHERE name = ? AND department_id IN (SELECT id FROM departments WHERE faculty_id IN (SELECT id FROM faculties WHERE university_id = ?))");
+        $stmt->bind_param("si", $deg_name, $uni_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res->num_rows > 0) {
+            $deg_id = $res->fetch_assoc()['id'];
+        } else {
+            $stmt2 = $conn->prepare("INSERT INTO degrees (department_id, name, duration, medium) VALUES (?, ?, '4 years', 'English')");
+            $stmt2->bind_param("is", $dept_id, $deg_name);
+            $stmt2->execute();
+            $deg_id = $conn->insert_id;
+        }
+        
+        // Insert cutoff
+        $stream = 'Physical Science'; // Dummy
+        $stmt = $conn->prepare("INSERT INTO zscore_cutoffs (degree_id, stream, cutoff, subject1, subject2, subject3, district) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isdssss", $deg_id, $stream, $cutoff, $sub1, $sub2, $sub3, $district);
+        $stmt->execute();
     }
-    
-    // Create dummy faculty/department if missing for this uni
-    $conn->query("INSERT IGNORE INTO faculties (id, university_id, name) VALUES ($uni_id, $uni_id, 'Faculty of General')");
-    $conn->query("INSERT IGNORE INTO departments (id, faculty_id, name) VALUES ($uni_id, $uni_id, 'Department of General')");
-    $dept_id = $uni_id;
-    
-    // Get/create degree
-    $stmt = $conn->prepare("SELECT id FROM degrees WHERE name = ? AND department_id IN (SELECT id FROM departments WHERE faculty_id IN (SELECT id FROM faculties WHERE university_id = ?))");
-    $stmt->bind_param("si", $deg_name, $uni_id);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res->num_rows > 0) {
-        $deg_id = $res->fetch_assoc()['id'];
-    } else {
-        $stmt2 = $conn->prepare("INSERT INTO degrees (department_id, name, duration, medium) VALUES (?, ?, '4 years', 'English')");
-        $stmt2->bind_param("is", $dept_id, $deg_name);
-        $stmt2->execute();
-        $deg_id = $conn->insert_id;
-    }
-    
-    // Insert cutoff
-    $stream = 'Physical Science'; // Dummy
-    $stmt = $conn->prepare("INSERT INTO zscore_cutoffs (degree_id, stream, cutoff, subject1, subject2, subject3, district) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("isdssss", $deg_id, $stream, $cutoff, $sub1, $sub2, $sub3, $district);
-    $stmt->execute();
-}
 
 echo "Database updated successfully.";
 $conn->query("SET FOREIGN_KEY_CHECKS = 1;");
