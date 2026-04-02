@@ -6,14 +6,17 @@ $pageStyles = ["css/pages/finder.css"];
 
 $degrees = [];
 $error = "";
+$searchMode = ""; // "zscore" or "name"
 
 $subjects = ["Combined Mathematics", "Physics", "Chemistry", "ICT", "Biology"];
-$districts = ["Colombo", "Gampaha", "Galle", 'All'];
+$districts = ["Colombo", "Gampaha", "Galle", "All"];
 
 $sub1 = $_POST["subject1"] ?? "";
 $sub2 = $_POST["subject2"] ?? "";
 $sub3 = $_POST["subject3"] ?? "";
 $district = $_POST["district"] ?? "";
+
+$degreeSearchName = $_POST["search_degree_name"] ?? "";
 
 $submittedZscore = $_POST["zscore"] ?? "";
 $zscore = is_numeric($submittedZscore) ? floatval($submittedZscore) : 0;
@@ -21,46 +24,65 @@ $sliderValue = $zscore > 0 ? $zscore : 3.0;
 $sliderValueFormatted = number_format($sliderValue, 3, ".", "");
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    if ($zscore > 0 && $sub1 && $sub2 && $sub3 && $district) {
-        $stmt = $conn->prepare("
-            SELECT d.name AS degree_name, u.name AS university_name, u.id AS university_id, 
-                   z.cutoff, d.duration, d.medium, d.description 
-            FROM degrees d 
-            JOIN departments dep ON d.department_id = dep.id 
-            JOIN faculties f ON dep.faculty_id = f.id 
-            JOIN universities u ON f.university_id = u.id 
-            JOIN zscore_cutoffs z ON d.id = z.degree_id 
-            WHERE 
-            (
-                (z.subject1 = ? AND z.subject2 = ? AND z.subject3 = ?) OR 
-                (z.subject1 = ? AND z.subject2 = ? AND z.subject3 = ?) OR
-                (z.subject1 = ? AND z.subject2 = ? AND z.subject3 = ?) OR
-                (z.subject1 = ? AND z.subject2 = ? AND z.subject3 = ?) OR
-                (z.subject1 = ? AND z.subject2 = ? AND z.subject3 = ?) OR
-                (z.subject1 = ? AND z.subject2 = ? AND z.subject3 = ?)
-            )
-            AND (z.district = 'All' OR z.district = ?) 
-            AND z.cutoff <= ? 
-            ORDER BY z.cutoff DESC
-        ");
-        
-        $stmt->bind_param(
-            "sssssssssssssssssssd", 
-            $sub1, $sub2, $sub3, 
-            $sub1, $sub3, $sub2,
-            $sub2, $sub1, $sub3,
-            $sub2, $sub3, $sub1,
-            $sub3, $sub1, $sub2,
-            $sub3, $sub2, $sub1,
-            $district, 
-            $zscore
-        );
-        
-        $stmt->execute();
-        $degrees = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $stmt->close();
-    } else {
-        $error = "Please enter a valid Z-score, select all 3 subjects and a district.";
+    if (isset($_POST["zscore_search"])) {
+        $searchMode = "zscore";
+        if ($zscore > 0 && $sub1 && $sub2 && $sub3 && $district) {
+            $stmt = $conn->prepare("
+                SELECT d.name AS degree_name, u.name AS university_name, u.id AS university_id, 
+                       z.cutoff, d.duration, d.medium, d.description 
+                FROM degrees d 
+                JOIN departments dep ON d.department_id = dep.id 
+                JOIN faculties f ON dep.faculty_id = f.id 
+                JOIN universities u ON f.university_id = u.id 
+                JOIN zscore_cutoffs z ON d.id = z.degree_id 
+                WHERE 
+                (
+                    ? IN (z.subject1, z.subject2, z.subject3) AND
+                    ? IN (z.subject1, z.subject2, z.subject3) AND
+                    ? IN (z.subject1, z.subject2, z.subject3)
+                )
+                AND (z.district = 'All' OR z.district = ?) 
+                AND z.cutoff <= ? 
+                ORDER BY z.cutoff DESC
+            ");
+            
+            $stmt->bind_param(
+                "ssssd", 
+                $sub1, $sub2, $sub3, 
+                $district, 
+                $zscore
+            );
+            
+            $stmt->execute();
+            $degrees = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+        } else {
+            $error = "Please enter a valid Z-score, select all 3 subjects and a district.";
+        }
+    } elseif (isset($_POST["name_search"])) {
+        $searchMode = "name";
+        if (!empty(trim($degreeSearchName))) {
+            $likeDegree = "%" . $degreeSearchName . "%";
+            $stmt = $conn->prepare("
+                SELECT d.name AS degree_name, u.name AS university_name, u.id AS university_id, 
+                       MIN(z.cutoff) as cutoff, d.duration, d.medium, d.description 
+                FROM degrees d 
+                JOIN departments dep ON d.department_id = dep.id 
+                JOIN faculties f ON dep.faculty_id = f.id 
+                JOIN universities u ON f.university_id = u.id 
+                LEFT JOIN zscore_cutoffs z ON d.id = z.degree_id 
+                WHERE d.name LIKE ?
+                GROUP BY d.id
+                ORDER BY d.name ASC
+            ");
+            
+            $stmt->bind_param("s", $likeDegree);
+            $stmt->execute();
+            $degrees = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+        } else {
+            $error = "Please enter a degree name to search.";
+        }
     }
 }
 
@@ -70,7 +92,7 @@ include "includes/header.php";
     <div class="container">
         <p class="eyebrow">Z-Score Finder</p>
         <h1>Z-Score Degree Finder</h1>
-        <p class="page-hero-meta">Match your A/L results to degrees according to your subject combination and district.</p>
+        <p class="page-hero-meta">Match your A/L results to degrees according to your subject combination and district, or search by degree name directly.</p>
     </div>
 </section>
 
@@ -81,79 +103,87 @@ include "includes/header.php";
                 <p><?php echo htmlspecialchars($error); ?></p>
             </div>
         <?php endif; ?>
-        <form class="finder-stage reveal-on-scroll" method="POST" action="finder.php#results">
-            <div class="finder-progress">
-                <?php
-                $progressConfig = [
-                    ["label" => "Select Subjects", "active" => !empty($sub1)],
-                    ["label" => "Select District", "active" => !empty($district)],
-                    ["label" => "Set Target", "active" => $zscore > 0],
-                    ["label" => "See results", "active" => $_SERVER["REQUEST_METHOD"] === "POST"],
-                ];
-                foreach ($progressConfig as $index => $step):
-                ?>
-                    <div class="progress-step<?php echo $step["active"] ? " is-active" : ""; ?>">
-                        <strong><?php echo $index + 1; ?></strong>
-                        <span><?php echo htmlspecialchars($step["label"]); ?></span>
+        
+        <div style="display:flex; gap: 32px; flex-wrap: wrap;">
+            
+            <!-- Z-Score Search Form -->
+            <form class="finder-stage reveal-on-scroll" method="POST" action="finder.php#results" style="flex:1; min-width: 300px;">
+                <input type="hidden" name="zscore_search" value="1">
+                <h3 style="margin-bottom: 16px;">Search by Z-Score & Subjects</h3>
+                
+                <div style="display:flex; gap:16px; margin: 16px 0; flex-direction: column;">
+                    <div class="form-field" style="flex:1;">
+                        <label>Subject 1</label>
+                        <select name="subject1" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                            <option value="">Select Subject 1</option>
+                            <?php foreach($subjects as $s): ?>
+                                <option value="<?php echo $s; ?>" <?php echo $sub1===$s ? "selected" : ""; ?>><?php echo $s; ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                <?php endforeach; ?>
-            </div>
-            
-            <div style="display:flex; gap:16px; margin: 16px 0;">
-                <div class="form-field" style="flex:1;">
-                    <label>Subject 1</label>
-                    <select name="subject1" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="">Select Subject 1</option>
-                        <?php foreach($subjects as $s): ?>
-                            <option value="<?php echo $s; ?>" <?php echo $sub1===$s ? "selected" : ""; ?>><?php echo $s; ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="form-field" style="flex:1;">
+                        <label>Subject 2</label>
+                        <select name="subject2" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                            <option value="">Select Subject 2</option>
+                            <?php foreach($subjects as $s): ?>
+                                <option value="<?php echo $s; ?>" <?php echo $sub2===$s ? "selected" : ""; ?>><?php echo $s; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-field" style="flex:1;">
+                        <label>Subject 3</label>
+                        <select name="subject3" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                            <option value="">Select Subject 3</option>
+                            <?php foreach($subjects as $s): ?>
+                                <option value="<?php echo $s; ?>" <?php echo $sub3===$s ? "selected" : ""; ?>><?php echo $s; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-field" style="flex:1;">
-                    <label>Subject 2</label>
-                    <select name="subject2" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="">Select Subject 2</option>
-                        <?php foreach($subjects as $s): ?>
-                            <option value="<?php echo $s; ?>" <?php echo $sub2===$s ? "selected" : ""; ?>><?php echo $s; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-field" style="flex:1;">
-                    <label>Subject 3</label>
-                    <select name="subject3" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="">Select Subject 3</option>
-                        <?php foreach($subjects as $s): ?>
-                            <option value="<?php echo $s; ?>" <?php echo $sub3===$s ? "selected" : ""; ?>><?php echo $s; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
 
-            <div class="form-field" style="margin-bottom:16px;">
-                <label>District</label>
-                <select name="district" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                    <option value="">Select District</option>
-                    <?php foreach($districts as $d): ?>
-                        <option value="<?php echo $d; ?>" <?php echo $district===$d ? "selected" : ""; ?>><?php echo $d; ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="slider-wrapper">
-                <label for="zscoreRange">Your Z-Score</label>
-                <input type="range" class="range-slider" id="zscoreRange" min="0" max="4" step="0.001" value="<?php echo htmlspecialchars($sliderValueFormatted); ?>">
-                <div class="range-value">
-                    <span>Your Z-Score:</span>
-                    <strong id="zscoreValue"><?php echo htmlspecialchars($sliderValueFormatted); ?></strong>
+                <div class="form-field" style="margin-bottom:16px;">
+                    <label>District</label>
+                    <select name="district" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="">Select District</option>
+                        <?php foreach($districts as $d): ?>
+                            <option value="<?php echo $d; ?>" <?php echo $district===$d ? "selected" : ""; ?>><?php echo $d; ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-                <input type="hidden" id="zscoreInput" name="zscore" value="<?php echo htmlspecialchars($sliderValueFormatted); ?>">
-            </div>
+
+                <div class="slider-wrapper">
+                    <label for="zscoreRange">Your Z-Score</label>
+                    <input type="range" class="range-slider" id="zscoreRange" min="0" max="4" step="0.001" value="<?php echo htmlspecialchars($sliderValueFormatted); ?>">
+                    <div class="range-value">
+                        <span>Your Z-Score:</span>
+                        <strong id="zscoreValue"><?php echo htmlspecialchars($sliderValueFormatted); ?></strong>
+                    </div>
+                    <input type="hidden" id="zscoreInput" name="zscore" value="<?php echo htmlspecialchars($sliderValueFormatted); ?>">
+                </div>
+                
+                <div class="finder-actions">
+                    <button type="submit" class="btn btn-primary">Find Degrees</button>
+                    <button type="button" class="btn btn-ghost" onclick="resetZscoreForm()">Reset</button>
+                </div>
+            </form>
             
-            <div class="finder-actions">
-                <button type="submit" class="btn btn-primary">Find Degrees</button>
-                <button type="button" class="btn btn-ghost" onclick="resetFinderForm()">Reset</button>
-            </div>
-        </form>
+            <!-- Degree Name Search Form -->
+            <form class="finder-stage reveal-on-scroll" method="POST" action="finder.php#results" style="flex:1; min-width: 300px; height: fit-content;">
+                <input type="hidden" name="name_search" value="1">
+                <h3 style="margin-bottom: 16px;">Search by Degree Name</h3>
+                
+                <div class="form-field" style="margin-bottom: 16px;">
+                    <label>Degree Name</label>
+                    <input type="text" id="searchInput" name="search_degree_name" placeholder="e.g. Artificial Intelligence" value="<?php echo htmlspecialchars($degreeSearchName); ?>" required style="width:100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                </div>
+                
+                <div class="finder-actions">
+                    <button type="submit" class="btn btn-primary">Search Degree</button>
+                    <button type="button" class="btn btn-ghost" onclick="resetNameSearch()">Reset</button>
+                </div>
+            </form>
+            
+        </div>
     </div>
 </section>
 
@@ -166,7 +196,9 @@ include "includes/header.php";
                         <article class="finder-card reveal-on-scroll">
                             <div class="finder-card-head">
                                 <h3><?php echo htmlspecialchars($deg["degree_name"]); ?></h3>
-                                <span class="zscore-badge">Z-Score cutoff: <?php echo htmlspecialchars($deg["cutoff"]); ?></span>
+                                <?php if(isset($deg["cutoff"]) && $deg["cutoff"] !== null): ?>
+                                    <span class="zscore-badge">Z-Score cutoff (~): <?php echo htmlspecialchars($deg["cutoff"]); ?></span>
+                                <?php endif; ?>
                             </div>
                             <div class="finder-card-meta">
                                 <span><strong>University:</strong> <?php echo htmlspecialchars($deg["university_name"]); ?></span>
@@ -184,7 +216,13 @@ include "includes/header.php";
                         </article>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <p class="section-subtitle">No matching degrees found for your subject combination and district. Relax the cutoff or verify your inputs.</p>
+                    <p class="section-subtitle">
+                        <?php if($searchMode === "zscore"): ?>
+                            No matching degrees found for your subject combination and district. Relax the cutoff or verify your inputs.
+                        <?php else: ?>
+                            No matching degree names found. Try another keyword.
+                        <?php endif; ?>
+                    </p>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
@@ -192,23 +230,27 @@ include "includes/header.php";
 </section>
 
 <script>
-function resetFinderForm() {
-    // Reset all select dropdowns
-    const selects = document.querySelectorAll('.finder-stage select');
-    selects.forEach(select => select.selectedIndex = 0);
+function resetZscoreForm() {
+    // Reset all select dropdowns strictly inside the zscore form
+    const selects = document.querySelectorAll("input[name='zscore_search']").forEach(e => {
+        const form = e.closest("form");
+        const formSelects = form.querySelectorAll("select");
+        formSelects.forEach(select => select.selectedIndex = 0);
+    });
     
     // Reset the slider and its displays to 0
-    const slider = document.getElementById('zscoreRange');
-    const zValueDisplay = document.getElementById('zscoreValue');
-    const zInput = document.getElementById('zscoreInput');
+    const slider = document.getElementById("zscoreRange");
+    const zValueDisplay = document.getElementById("zscoreValue");
+    const zInput = document.getElementById("zscoreInput");
     
-    if(slider) slider.value = '0';
-    if(zValueDisplay) zValueDisplay.textContent = '0.000';
-    if(zInput) zInput.value = '0.000';
-    
-    // Reset the hidden stream input if still present
-    const streamInput = document.getElementById('streamInput');
-    if (streamInput) streamInput.value = '';
+    if(slider) slider.value = "0";
+    if(zValueDisplay) zValueDisplay.textContent = "0.000";
+    if(zInput) zInput.value = "0.000";
+}
+
+function resetNameSearch() {
+    const input = document.getElementById("searchInput");
+    if(input) input.value = "";
 }
 </script>
 
