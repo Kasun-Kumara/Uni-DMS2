@@ -262,4 +262,21 @@ const App = (() => {
     return { init };
 })();
 
-document.addEventListener('DOMContentLoaded', App.init);
+document.addEventListener('DOMContentLoaded', () => {
+    App.init();
+    // Force navigation for hero buttons in the same tab
+    const findDegreeBtn = document.querySelector('.hero-cta-group .btn.btn-primary[href="finder.php"]');
+    const browseUnisBtn = document.querySelector('.hero-cta-group .btn.btn-ghost[href="universities.php"]');
+    if (findDegreeBtn) {
+        findDegreeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = 'finder.php';
+        });
+    }
+    if (browseUnisBtn) {
+        browseUnisBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = 'universities.php';
+        });
+    }
+});
