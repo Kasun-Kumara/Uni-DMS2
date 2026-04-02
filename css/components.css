@@ -355,6 +355,60 @@ nav {
     padding-top: var(--space-10);
 }
 
+.what-we-offer-title {
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: var(--space-6);
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+}
+
+.offer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.offer-card {
+    background: rgba(248, 249, 252, 0.88);
+    border: 1px solid rgba(203, 210, 225, 0.72);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    padding: var(--space-5) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-2);
+}
+
+.offer-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+}
+
+.offer-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    display: block;
+}
+
+.offer-card h3 {
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+}
+
+.offer-card p {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--text-on-light-secondary);
+}
+
 .mission-vision-section {
     padding-top: clamp(180px, 24vw, 270px);
 }
@@ -559,6 +613,10 @@ nav {
         padding-top: var(--space-8);
     }
 
+    .offer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .mission-vision-section {
         padding-top: clamp(132px, 32vw, 190px);
     }
@@ -577,6 +635,12 @@ nav {
         height: 60px;
         border-radius: 18px;
         font-size: 1.45rem;
+    }
+}
+
+@media (max-width: var(--bp-sm)) {
+    .offer-grid {
+        grid-template-columns: 1fr;
     }
 }
 

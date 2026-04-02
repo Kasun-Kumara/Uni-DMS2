@@ -40,43 +40,27 @@ include 'includes/header.php';
 </section>
 <section class="section-shell about-intro-section">
     <div class="container">
-        <div class="feature-grid">
-            <article class="feature-card reveal-on-scroll">
-                <div class="feature-icon" aria-hidden="true"><i class="fa-solid fa-compass"></i></div>
-                <h3>Trusted mentorship</h3>
-                <p>Former academics and alumni decode Sri Lanka’s universities, translating Z-scores into future-forward outcomes.</p>
+        <h2 class="what-we-offer-title">What We Offer</h2>
+        <div class="offer-grid">
+            <article class="offer-card reveal-on-scroll">
+                <div class="offer-icon" aria-hidden="true"><img src="images/degree_database_icon.png" alt="" loading="lazy"></div>
+                <h3>University Database</h3>
+                <p>Detailed profiles of all recognized universities in Sri Lanka, including campus facilities and student life.</p>
             </article>
-            <article class="feature-card reveal-on-scroll">
-                <div class="feature-icon" aria-hidden="true"><i class="fa-solid fa-hourglass-half"></i></div>
-                <h3>Purposeful timing</h3>
-                <p>Every deadline, open day, and scholarship window is choreographed so you feel guided, never rushed.</p>
+            <article class="offer-card reveal-on-scroll">
+                <div class="offer-icon" aria-hidden="true"><img src="images/degree_finder_icon.png" alt="" loading="lazy"></div>
+                <h3>Comprehensive Degree Finder</h3>
+                <p>Explore every available degree program, understand the modules, and access curated YouTube resources and study materials.</p>
             </article>
-            <article class="feature-card reveal-on-scroll">
-                <div class="feature-icon" aria-hidden="true"><i class="fa-solid fa-heart"></i></div>
-                <h3>Warm, human craft</h3>
-                <p>Gold accents, intentional motion, and layered depth make the admissions journey feel premium and calm.</p>
+            <article class="offer-card reveal-on-scroll">
+                <div class="offer-icon" aria-hidden="true"><img src="images/z_core_calculator_icon.png" alt="" loading="lazy"></div>
+                <h3>Smart Z-Score Calculator</h3>
+                <p>Take the guesswork out of university admissions. Input your results and instantly see which paths are open to you.</p>
             </article>
-        </div>
-    </div>
-</section>
-<section class="section-shell" aria-label="Process">
-    <div class="container">
-        <h2>Our process</h2>
-        <div class="feature-grid">
-            <article class="feature-card reveal-on-scroll">
-                <p class="eyebrow">01</p>
-                <h3>Research &amp; empathy</h3>
-                <p>We hear your story, respect Sri Lankan tradition, and translate the admissions landscape into human language.</p>
-            </article>
-            <article class="feature-card reveal-on-scroll">
-                <p class="eyebrow">02</p>
-                <h3>Design &amp; craft</h3>
-                <p>Playfair headlines, glassmorphism layers, and deliberate motion bring gravitas to every interaction.</p>
-            </article>
-            <article class="feature-card reveal-on-scroll">
-                <p class="eyebrow">03</p>
-                <h3>Launch &amp; learn</h3>
-                <p>We measure how students move and iterate the journeys so each season feels more guided.</p>
+            <article class="offer-card reveal-on-scroll">
+                <div class="offer-icon" aria-hidden="true"><img src="images/career_guidance_icon.png" alt="" loading="lazy"></div>
+                <h3>Career Guidance</h3>
+                <p>Not sure what to do next? Discover future career opportunities linked to specific degrees and get advice on how to get there.</p>
             </article>
         </div>
     </div>
