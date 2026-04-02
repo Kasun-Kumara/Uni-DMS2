@@ -40,7 +40,7 @@ include 'includes/header.php';
 </section>
 <section class="section-shell about-intro-section">
     <div class="container">
-        <h2 class="what-we-offer-title">What We Offer</h2>
+        <h2 class="what-we-offer-title reveal-on-scroll">What We Offer</h2>
         <div class="offer-grid">
             <article class="offer-card reveal-on-scroll">
                 <div class="offer-icon" aria-hidden="true"><img src="images/degree_database_icon.png" alt="" loading="lazy"></div>
@@ -63,6 +63,19 @@ include 'includes/header.php';
                 <p>Not sure what to do next? Discover future career opportunities linked to specific degrees and get advice on how to get there.</p>
             </article>
         </div>
+    </div>
+</section>
+<section class="section-shell cta-energy-section" aria-label="Call to action">
+    <div class="container cta-energy-wrapper">
+        <div class="cta-energy-content reveal-on-scroll">
+            <h2 class="cta-energy-heading">Ready to Find Your Path?</h2>
+            <p class="cta-energy-subheading">Don't let your future wait. Start exploring degrees or check your Z-score eligibility today.</p>
+            <div class="cta-energy-buttons">
+                <a href="finder.php" class="btn btn-primary cta-energy-btn">Explore Degrees</a>
+                <a href="finder.php" class="btn btn-secondary cta-energy-btn">Find My Z-Score</a>
+            </div>
+        </div>
+        <div class="cta-energy-decoration" aria-hidden="true"></div>
     </div>
 </section>
 <?php include 'includes/footer.php'; ?>
