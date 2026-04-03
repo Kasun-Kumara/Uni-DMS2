@@ -1,5 +1,6 @@
 <?php
 require_once "includes/db.php";
+require_once "includes/require_user_details.php";
 
 $pageTitle = "Z-Score Finder";
 $pageStyles = ["css/pages/finder.css"];
