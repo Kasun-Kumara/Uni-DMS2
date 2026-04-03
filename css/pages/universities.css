@@ -18,10 +18,13 @@
 
 .university-card {
     position: relative;
+    display: flex;
+    flex-direction: column;
     background: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.72);
     border-radius: var(--radius-xl);
     overflow: hidden;
+    height: 100%;
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
     backdrop-filter: blur(7px) saturate(110%);
     -webkit-backdrop-filter: blur(7px) saturate(110%);
@@ -45,6 +48,7 @@
 .university-image {
     position: relative;
     height: 200px;
+    flex-shrink: 0;
     overflow: hidden;
 }
 
@@ -69,12 +73,12 @@
 .image-overlay {
     position: absolute;
     inset: 0;
-    padding: var(--space-4);
+    padding: var(--space-6);
     background: linear-gradient(180deg, rgba(8, 12, 20, 0.85) 0%, rgba(8, 12, 20, 0.2) 50%, transparent 100%);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    gap: var(--space-2);
+    gap: var(--space-3);
     color: white;
 }
 
@@ -142,10 +146,11 @@
 
 .university-content {
     position: relative;
-    padding: var(--space-5);
+    padding: var(--space-6);
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-4);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(248, 250, 252, 0.72) 100%);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -153,6 +158,9 @@
 
 .university-content p {
     color: var(--text-on-light-secondary);
+    line-height: 1.6;
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-2);
 }
 
 .pills {

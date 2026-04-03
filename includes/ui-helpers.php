@@ -34,6 +34,8 @@ function getUniversityImagePath($university) {
         'University of Vavuniya' => 'images/universities/vavuniya.jpg',
         'Gampaha Wickramarachchi University of Indigenous Medicine, Sri Lanka' => 'images/universities/gampaha.jpg',
         'Gampaha Wickramarachchi University of Indigenous Medicine' => 'images/universities/gampaha.jpg',
+        'University of Trincomalee' => 'images/universities/trincomalee.jpg',
+        'Trincomalee Campus, Eastern University, Sri Lanka' => 'images/universities/trincomalee.jpg',
     ];
     
     if (isset($static_map[$uni_name]) && file_exists($static_map[$uni_name])) {
