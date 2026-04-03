@@ -122,6 +122,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 include "includes/header.php";
 ?>
+<!-- Wrap the middle section in a container with a white background -->
+<main style="background-color: #ffffff;">
+<style>
+    main, main h1, main h3, main p, main label, main input, main select, main option, main .btn-ghost, main .eyebrow {
+        color: #000000 !important;
+    }
+    main .btn-primary {
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+</style>
 <section class="page-hero reveal-on-scroll" aria-label="Finder hero">
     <div class="container">
         <p class="eyebrow">Z-Score Finder</p>
@@ -428,7 +439,7 @@ include "includes/header.php";
                                                     </div>
                                                 <?php endif; ?>
                                                 
-                                                <div style="display: flex; gap: 16px; align-items: center; border-top: 1px solid #eaeaea; padding-top: 16px;">
+                                                <div style="display: flex; gap: 16px; align-items: center; padding-top: 16px;">
                                                     <?php if (!empty($deg["university_id"])): ?>
                                                         <a class="btn btn-primary" href="university.php?id=<?php echo $deg["university_id"]; ?>">Go to University Page &rarr;</a>
                                                     <?php endif; ?>
@@ -512,5 +523,6 @@ function resetNameSearch() {
     if(input) input.value = "";
 }
 </script>
+</main>
 
 <?php include "includes/footer.php"; ?>
