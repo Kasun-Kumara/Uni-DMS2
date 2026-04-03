@@ -176,3 +176,11 @@
         padding: var(--space-8);
     }
 }
+
+/* Form visibility fixes */
+.finder-stage input,
+.finder-stage select,
+.finder-card input,
+.finder-card select {
+    color: var(--text-on-light-primary) !important;
+}
